@@ -6,6 +6,6 @@
     <title>Document</title>
 </head>
 <body>
-    rizan incu bahlil
+    rizan 
 </body>
 </html>
