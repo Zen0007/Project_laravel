@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('surat undangan');
+    return view('blog');
 });
 
 Route::get("/home",function () {
