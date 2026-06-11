@@ -5,13 +5,14 @@
             <span class="text-neonGreen">~</span><span class="text-textPrimary">/dev.log</span>
         </a>
 
-        {{-- Desktop Links --}}
-        <div class="hidden md:flex items-center gap-8">
-            <a href="#" onclick="showSection('home')" class="nav-link active text-sm font-mono text-textSecondary" data-section="home">Home</a>
-            <a href="#" onclick="showSection('articles')" class="nav-link text-sm font-mono text-textSecondary" data-section="articles">Articles</a>
-            <a href="#" onclick="showSection('projects')" class="nav-link text-sm font-mono text-textSecondary" data-section="projects">Projects</a>
-            <a href="#" onclick="showSection('about')" class="nav-link text-sm font-mono text-textSecondary" data-section="about">About</a>
-        </div>
+      {{-- Desktop Links --}}
+
+<div class="hidden md:flex items-center gap-8">
+    <a href="#" onclick="showSection('home')" class="nav-link active text-sm font-mono" data-section="home">Home</a>
+    <a href="#" onclick="showSection('articles')" class="nav-link text-sm font-mono" data-section="articles">Articles</a>
+    <a href="#" onclick="showSection('projects')" class="nav-link text-sm font-mono" data-section="projects">Projects</a>
+    <a href="#" onclick="showSection('about')" class="nav-link text-sm font-mono" data-section="about">About</a>
+</div>
 
         {{-- Desktop Actions --}}
         <div class="hidden md:flex items-center gap-3">
@@ -19,7 +20,7 @@
                 <i data-lucide="palette" class="w-4 h-4"></i>
             </button>
             <a href="https://github.com" target="_blank" class="p-2 rounded-lg hover:bg-surfaceLight transition-colors text-textSecondary hover:text-neonGreen">
-                <i data-lucide="github" class="w-4 h-4"></i>
+               <i class="fab fa-github"></i>
             </a>
         </div>
 

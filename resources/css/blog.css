@@ -317,16 +317,6 @@ body {
 .mobile-menu.open {
     transform: translateX(0);
 }
-.mobile-menu {
-    z-index: 50;
-}
-
-#mobileOverlay {
-    z-index: 40;
-}
-#mobileOverlay.hidden {
-    pointer-events: none;
-}
 
 /* Article detail inline code */
 .inline-code {

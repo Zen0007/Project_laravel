@@ -51,13 +51,13 @@
                     {{-- Social Links --}}
                     <div class="flex items-center gap-3 justify-center md:justify-start">
                         <a href="#" class="p-3 rounded-xl bg-surface border border-border hover:border-neonGreen/30 hover:text-neonGreen text-textSecondary transition-all" title="GitHub">
-                            <i data-lucide="github" class="w-5 h-5"></i>
+                            <i class="fab fa-github"></i>
                         </a>
                         <a href="#" class="p-3 rounded-xl bg-surface border border-border hover:border-neonBlue/30 hover:text-neonBlue text-textSecondary transition-all" title="Twitter/X">
-                            <i data-lucide="twitter" class="w-5 h-5"></i>
+                            <i class="fab fa-x-twitter"></i>
                         </a>
                         <a href="#" class="p-3 rounded-xl bg-surface border border-border hover:border-neonGreen/30 hover:text-neonGreen text-textSecondary transition-all" title="LinkedIn">
-                            <i data-lucide="linkedin" class="w-5 h-5"></i>
+                            <i class="fab fa-linkedin"></i>
                         </a>
                         <a href="#" class="p-3 rounded-xl bg-surface border border-border hover:border-neonBlue/30 hover:text-neonBlue text-textSecondary transition-all" title="Email">
                             <i data-lucide="mail" class="w-5 h-5"></i>

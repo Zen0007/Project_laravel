@@ -123,19 +123,19 @@
                         </a>
                         <a href="#" class="flex items-center gap-3 text-sm text-textSecondary hover:text-neonBlue transition-colors group">
                             <div class="p-2 rounded-lg bg-surfaceLight group-hover:bg-neonBlue/10 transition-colors">
-                                <i data-lucide="github" class="w-4 h-4"></i>
+                               <i class="fab fa-github"></i>
                             </div>
                             <span class="font-mono text-xs">github.com/alexchen</span>
                         </a>
                         <a href="#" class="flex items-center gap-3 text-sm text-textSecondary hover:text-neonGreen transition-colors group">
                             <div class="p-2 rounded-lg bg-surfaceLight group-hover:bg-neonGreen/10 transition-colors">
-                                <i data-lucide="twitter" class="w-4 h-4"></i>
+                                <i class="fab fa-x-twitter"></i>
                             </div>
                             <span class="font-mono text-xs">@alexchendev</span>
                         </a>
                         <a href="#" class="flex items-center gap-3 text-sm text-textSecondary hover:text-neonBlue transition-colors group">
                             <div class="p-2 rounded-lg bg-surfaceLight group-hover:bg-neonBlue/10 transition-colors">
-                                <i data-lucide="linkedin" class="w-4 h-4"></i>
+                                <i class="fab fa-linkedin"></i>
                             </div>
                             <span class="font-mono text-xs">linkedin.com/in/alexchen</span>
                         </a>

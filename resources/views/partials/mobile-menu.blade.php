@@ -6,13 +6,12 @@
             <i data-lucide="x" class="w-5 h-5"></i>
         </button>
     </div>
-    <div class="flex flex-col gap-4">
-        <a href="#" onclick="showSection('home');toggleMobileMenu()" class="font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2">~/ Home</a>
-        <a href="#" onclick="showSection('articles');toggleMobileMenu()" class="font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2">~/ Articles</a>
-        <a href="#" onclick="showSection('projects');toggleMobileMenu()" class="font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2">~/ Projects</a>
-        <a href="#" onclick="showSection('about');toggleMobileMenu()" class="font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2">~/ About</a>
-    </div>
+  <div class="flex flex-col gap-4">
+    <a href="#" onclick="showSection('home', event);toggleMobileMenu()" class="nav-link active font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="home">~/ Home</a>
+    <a href="#" onclick="showSection('articles', event);toggleMobileMenu()" class="nav-link font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="articles">~/ Articles</a>
+    <a href="#" onclick="showSection('projects', event);toggleMobileMenu()" class="nav-link font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="projects">~/ Projects</a>
+    <a href="#" onclick="showSection('about', event);toggleMobileMenu()" class="nav-link font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="about">~/ About</a>
 </div>
-
+</div>
 {{-- Overlay --}}
 <div class="fixed inset-0 bg-black/50 z-40 hidden" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
