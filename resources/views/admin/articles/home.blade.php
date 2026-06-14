@@ -1,5 +1,6 @@
 <div class="articles-home min-h-screen pt-24 px-6 max-w-6xl mx-auto font-mono">
     
+    {{-- Dashboard Header --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-6 mb-8 gap-4">
         <div>
             <h1 class="text-xl font-bold text-textPrimary tracking-tight">
@@ -8,16 +9,17 @@
             <p class="text-xs text-textSecondary mt-1">Manage system core resources and logs.</p>
         </div>
         <div>
-            <button class="px-4 py-2 text-xs font-bold rounded-lg bg-neonGreen text-bg hover:bg-neonGreen/90 transition shadow-lg shadow-neonGreen/10">
+            <button onclick="ArticleService.openCreateModal()" class="px-4 py-2 text-xs font-bold rounded-lg bg-neonGreen text-bg hover:bg-neonGreen/90 transition shadow-lg shadow-neonGreen/10">
                 + CREATE_NEW_ARTICLE
             </button>
         </div>
     </div>
 
+    {{-- System Statistics --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div class="p-4 bg-surface/40 border border-border rounded-xl">
             <div class="text-xs text-textSecondary">total_articles</div>
-            <div class="text-2xl font-bold text-neonGreen mt-1">12</div>
+            <div id="statTotalArticles" class="text-2xl font-bold text-neonGreen mt-1">...</div>
         </div>
         <div class="p-4 bg-surface/40 border border-border rounded-xl">
             <div class="text-xs text-textSecondary">total_projects</div>
@@ -31,12 +33,14 @@
         </div>
     </div>
 
+    {{-- Log Table Wrapper --}}
     <div class="bg-surface/30 border border-border rounded-xl overflow-hidden">
         <div class="p-4 border-b border-border/60 bg-surface/50 flex items-center justify-between">
             <span class="text-xs text-textPrimary font-bold">> database_entries.log</span>
-            <span class="text-[10px] text-textSecondary">Showing 3 of 12 records</span>
+            <span id="tableLogCount" class="text-[10px] text-textSecondary">Loading records...</span>
         </div>
         
+        {{-- Table Container --}}
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -44,39 +48,15 @@
                         <th class="p-4 font-medium w-16">ID</th>
                         <th class="p-4 font-medium">Title</th>
                         <th class="p-4 font-medium hidden sm:table-cell">Slug</th>
-                        <th class="p-4 font-medium">Status</th>
+                        <th class="p-4 font-medium">Tags</th>
                         <th class="p-4 font-medium text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="text-xs text-textSecondary divide-y divide-border/30">
-                    <tr class="hover:bg-surfaceLight/20 transition-colors">
-                        <td class="p-4 text-neonGreen">#003</td>
-                        <td class="p-4 font-medium text-textPrimary">Optimizing Go Garbage Collection for Microservices</td>
-                        <td class="p-4 hidden sm:table-cell text-textSecondary/70">/go-gc-optimization</td>
-                        <td class="p-4"><span class="px-2 py-0.5 text-[10px] bg-neonGreen/10 text-neonGreen rounded-md border border-neonGreen/20">published</span></td>
-                        <td class="p-4 text-right space-x-2">
-                            <button class="text-textPrimary hover:text-neonGreen transition">[edit]</button>
-                            <button class="text-red-400/70 hover:text-red-400 transition">[delete]</button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-surfaceLight/20 transition-colors">
-                        <td class="p-4 text-neonGreen">#002</td>
-                        <td class="p-4 font-medium text-textPrimary">Building Highly Scalable API Gateway using Gin Gonic</td>
-                        <td class="p-4 hidden sm:table-cell text-textSecondary/70">/scalable-api-gateway-gin</td>
-                        <td class="p-4"><span class="px-2 py-0.5 text-[10px] bg-neonGreen/10 text-neonGreen rounded-md border border-neonGreen/20">published</span></td>
-                        <td class="p-4 text-right space-x-2">
-                            <button class="text-textPrimary hover:text-neonGreen transition">[edit]</button>
-                            <button class="text-red-400/70 hover:text-red-400 transition">[delete]</button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-surfaceLight/20 transition-colors">
-                        <td class="p-4 text-neonGreen">#001</td>
-                        <td class="p-4 font-medium text-textPrimary">Understanding Clean Architecture in Flutter Applications</td>
-                        <td class="p-4 hidden sm:table-cell text-textSecondary/70">/flutter-clean-architecture</td>
-                        <td class="p-4"><span class="px-2 py-0.5 text-[10px] bg-amber-400/10 text-amber-400 rounded-md border border-amber-400/20">draft</span></td>
-                        <td class="p-4 text-right space-x-2">
-                            <button class="text-textPrimary hover:text-neonGreen transition">[edit]</button>
-                            <button class="text-red-400/70 hover:text-red-400 transition">[delete]</button>
+                <tbody id="articlesTableBody" class="text-xs text-textSecondary divide-y divide-border/30">
+                    {{-- Loader placeholder saat data sedang ditarik --}}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-textMuted animate-pulse">
+                            $ fetching_live_supabase_data...
                         </td>
                     </tr>
                 </tbody>
@@ -90,4 +70,41 @@
         </a>
     </div>
 
+</div>
+
+{{-- ==================== MODAL OVERLAY: CREATE NEW ARTICLE ==================== --}}
+<div id="createArticleModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-surface border border-border rounded-xl w-full max-w-2xl overflow-hidden font-mono text-xs">
+        <div class="p-4 border-b border-border bg-surfaceLight flex justify-between items-center">
+            <span class="text-textPrimary font-bold">> create_new_article.exe</span>
+            <button onclick="ArticleService.closeCreateModal()" class="text-textSecondary hover:text-red-400">[X]</button>
+        </div>
+        
+        <form id="createArticleForm" onsubmit="ArticleService.handleCreateArticle(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-textSecondary mb-1">Title *</label>
+                <input type="text" id="formTitle" required class="w-full bg-bg border border-border rounded p-2 text-textPrimary focus:border-neonGreen focus:outline-none">
+            </div>
+            
+            <div>
+                <label class="block text-textSecondary mb-1">Slug (Optional - auto-generated if left blank)</label>
+                <input type="text" id="formSlug" placeholder="e.g., my-awesome-post" class="w-full bg-bg border border-border rounded p-2 text-textPrimary focus:border-neonGreen focus:outline-none">
+            </div>
+            
+            <div>
+                <label class="block text-textSecondary mb-1">Tags (Comma-separated, e.g., golang, devops, rust)</label>
+                <input type="text" id="formTags" placeholder="golang, rust, devops" class="w-full bg-bg border border-border rounded p-2 text-textPrimary focus:border-neonGreen focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-textSecondary mb-1">Content (Markdown / Text Body) *</label>
+                <textarea id="formContent" required rows="6" class="w-full bg-bg border border-border rounded p-2 text-textPrimary focus:border-neonGreen focus:outline-none" placeholder="Write your content here..."></textarea>
+            </div>
+            
+            <div class="flex justify-end gap-4 pt-2">
+                <button type="button" onclick="ArticleService.closeCreateModal()" class="px-4 py-2 text-textSecondary hover:text-textPrimary">[CANCEL]</button>
+                <button type="submit" class="px-4 py-2 bg-neonGreen text-bg font-bold rounded hover:bg-neonGreen/90">[SUBMIT]</button>
+            </div>
+        </form>
+    </div>
 </div>

@@ -169,4 +169,84 @@ export class ArticleService {
         </article>
         `;
     }
+
+    static async handleDeleteArticle(id) {
+        if (
+            !confirm(
+                `Apakah Anda yakin ingin menghapus artikel dengan ID #${id}?`,
+            )
+        )
+            return;
+        try {
+            const success = await ArticleService.delete(id);
+            if (success) {
+                alert(`Artikel #${id} berhasil dihapus.`);
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error("Gagal menghapus artikel:", error);
+            alert("Terjadi kesalahan saat menghapus artikel: " + error.message);
+        }
+    }
+
+    // --- PENGATURAN MODAL (PINDAHKAN KE DALAM CLASS SEBAGAI STATIC) ---
+    static openCreateModal() {
+        console.log("Membuka modal...");
+        const modal = document.getElementById("createArticleModal");
+        if (!modal) {
+            console.error(
+                "Error: Elemen 'createArticleModal' tidak ditemukan!",
+            );
+            return;
+        }
+        modal.classList.remove("hidden");
+    }
+
+    static closeCreateModal() {
+        const modal = document.getElementById("createArticleModal");
+        const form = document.getElementById("createArticleForm");
+        if (modal) modal.classList.add("hidden");
+        if (form) form.reset();
+    }
+
+    static async handleCreateArticle(event) {
+        event.preventDefault();
+
+        const title = document.getElementById("formTitle").value;
+        const slug = document.getElementById("formSlug").value;
+        const content = document.getElementById("formContent").value;
+        const tagsInput = document.getElementById("formTags").value;
+
+        const tags = tagsInput
+            ? tagsInput.split(",").map((tag) => tag.trim().toLowerCase())
+            : [];
+
+        const articlePayload = {
+            title: title,
+            slug: slug || undefined,
+            content: content,
+            tags: tags,
+            excerpt: content.substring(0, 150) + "...",
+            cover_image:
+                "https://picsum.photos/seed/" + Math.random() + "/600/400",
+            read_time: "5 min read",
+        };
+
+        try {
+            const newArticle = await ArticleService.create(articlePayload);
+            if (newArticle) {
+                alert("Artikel baru berhasil dibuat!");
+                ArticleService.closeCreateModal(); // Panggil via class
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error("Gagal membuat artikel:", error);
+            alert("Terjadi kesalahan: " + error.message);
+        }
+    }
+}
+
+// EXPOSE KE WINDOW GLOBAL (Wajib untuk interaksi inline HTML onclick)
+if (typeof window !== "undefined") {
+    window.ArticleService = ArticleService;
 }
