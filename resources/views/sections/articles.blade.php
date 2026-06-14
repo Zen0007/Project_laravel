@@ -22,94 +22,9 @@
 
         {{-- Articles Grid --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="articlesGrid">
-
-            {{-- Article 1 --}}
-            <article class="article-card rounded-xl bg-surface overflow-hidden cursor-pointer" data-tags="golang" onclick="showArticle(0)">
-                <div class="h-44 bg-surfaceLight relative overflow-hidden">
-                    <img src="https://icehousecorp.com/wp-content/uploads/2022/04/go-768x525.png" alt="" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute top-3 left-3"><span class="tag-golang font-mono text-xs px-2 py-1 rounded-md">#golang</span></div>
-                </div>
-                <div class="p-5">
-                    <div class="font-mono text-xs text-textMuted mb-2">2024-12-15 · 8 min read</div>
-                    <h3 class="font-semibold text-textPrimary mb-2 leading-snug">Understanding Go Concurrency: Beyond Goroutines</h3>
-                    <p class="text-textSecondary text-sm leading-relaxed line-clamp-3">Deep dive into Go's concurrency model — channels, select statements, context propagation, and common patterns for building robust concurrent systems.</p>
-                </div>
-            </article>
-
-            {{-- Article 2 --}}
-            <article class="article-card rounded-xl bg-surface overflow-hidden cursor-pointer" data-tags="rust" onclick="showArticle(1)">
-                <div class="h-44 bg-surfaceLight relative overflow-hidden">
-                    <img src="https://picsum.photos/seed/rustlife/600/400.jpg" alt="" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute top-3 left-3"><span class="tag-rust font-mono text-xs px-2 py-1 rounded-md">#rust</span></div>
-                </div>
-                <div class="p-5">
-                    <div class="font-mono text-xs text-textMuted mb-2">2024-12-08 · 12 min read</div>
-                    <h3 class="font-semibold text-textPrimary mb-2 leading-snug">Rust Lifetimes Demystified: A Practical Guide</h3>
-                    <p class="text-textSecondary text-sm leading-relaxed line-clamp-3">Lifetime annotations don't have to be scary. Learn through practical examples how Rust's borrow checker ensures memory safety at compile time.</p>
-                </div>
-            </article>
-
-            {{-- Article 3 --}}
-            <article class="article-card rounded-xl bg-surface overflow-hidden cursor-pointer" data-tags="python,devops" onclick="showArticle(2)">
-                <div class="h-44 bg-surfaceLight relative overflow-hidden">
-                    <img src="https://picsum.photos/seed/asyncpy/600/400.jpg" alt="" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute top-3 left-3 flex gap-1">
-                        <span class="tag-python font-mono text-xs px-2 py-1 rounded-md">#python</span>
-                        <span class="tag-devops font-mono text-xs px-2 py-1 rounded-md">#devops</span>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div class="font-mono text-xs text-textMuted mb-2">2024-11-29 · 10 min read</div>
-                    <h3 class="font-semibold text-textPrimary mb-2 leading-snug">Async Python for High-Throughput APIs</h3>
-                    <p class="text-textSecondary text-sm leading-relaxed line-clamp-3">Building production-grade async APIs with FastAPI, handling 10k+ concurrent connections with proper resource management.</p>
-                </div>
-            </article>
-
-            {{-- Article 4 --}}
-            <article class="article-card rounded-xl bg-surface overflow-hidden cursor-pointer" data-tags="golang,database" onclick="showArticle(3)">
-                <div class="h-44 bg-surfaceLight relative overflow-hidden">
-                    <img src="https://picsum.photos/seed/gopgdb/600/400.jpg" alt="" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute top-3 left-3 flex gap-1">
-                        <span class="tag-golang font-mono text-xs px-2 py-1 rounded-md">#golang</span>
-                        <span class="tag-database font-mono text-xs px-2 py-1 rounded-md">#database</span>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div class="font-mono text-xs text-textMuted mb-2">2024-11-20 · 15 min read</div>
-                    <h3 class="font-semibold text-textPrimary mb-2 leading-snug">Go + PostgreSQL: Connection Pooling Done Right</h3>
-                    <p class="text-textSecondary text-sm leading-relaxed line-clamp-3">Optimizing database connections in Go services — pool sizing, prepared statements, and avoiding common pitfalls in high-load scenarios.</p>
-                </div>
-            </article>
-
-            {{-- Article 5 --}}
-            <article class="article-card rounded-xl bg-surface overflow-hidden cursor-pointer" data-tags="javascript" onclick="showArticle(4)">
-                <div class="h-44 bg-surfaceLight relative overflow-hidden">
-                    <img src="https://picsum.photos/seed/tsedge/600/400.jpg" alt="" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute top-3 left-3"><span class="tag-javascript font-mono text-xs px-2 py-1 rounded-md">#javascript</span></div>
-                </div>
-                <div class="p-5">
-                    <div class="font-mono text-xs text-textMuted mb-2">2024-11-12 · 7 min read</div>
-                    <h3 class="font-semibold text-textPrimary mb-2 leading-snug">TypeScript Edge Runtime: Beyond Node.js</h3>
-                    <p class="text-textSecondary text-sm leading-relaxed line-clamp-3">Exploring the new wave of TypeScript runtimes — Deno, Bun, and Cloudflare Workers — and when to choose each.</p>
-                </div>
-            </article>
-
-            {{-- Article 6 --}}
-            <article class="article-card rounded-xl bg-surface overflow-hidden cursor-pointer" data-tags="rust,devops" onclick="showArticle(5)">
-                <div class="h-44 bg-surfaceLight relative overflow-hidden">
-                    <img src="https://picsum.photos/seed/rustcli/600/400.jpg" alt="" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute top-3 left-3 flex gap-1">
-                        <span class="tag-rust font-mono text-xs px-2 py-1 rounded-md">#rust</span>
-                        <span class="tag-devops font-mono text-xs px-2 py-1 rounded-md">#devops</span>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div class="font-mono text-xs text-textMuted mb-2">2024-11-05 · 9 min read</div>
-                    <h3 class="font-semibold text-textPrimary mb-2 leading-snug">Building CLI Tools in Rust: From Zero to Published</h3>
-                    <p class="text-textSecondary text-sm leading-relaxed line-clamp-3">A complete guide to building, testing, and publishing CLI tools with Rust using Clap and Tokio.</p>
-                </div>
-            </article>
-
+        <div class="col-span-full text-center py-12">
+                <p class="text-textMuted font-mono text-xs animate-pulse">$ loading database entries...</p>
+            </div>
         </div>
     </div>
 </section>

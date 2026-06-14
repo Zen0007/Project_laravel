@@ -6,12 +6,36 @@
             <i data-lucide="x" class="w-5 h-5"></i>
         </button>
     </div>
-  <div class="flex flex-col gap-4">
-    <a href="#" onclick="showSection('home', event);toggleMobileMenu()" class="nav-link active font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="home">~/ Home</a>
-    <a href="#" onclick="showSection('articles', event);toggleMobileMenu()" class="nav-link font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="articles">~/ Articles</a>
-    <a href="#" onclick="showSection('projects', event);toggleMobileMenu()" class="nav-link font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="projects">~/ Projects</a>
-    <a href="#" onclick="showSection('about', event);toggleMobileMenu()" class="nav-link font-mono text-sm text-textSecondary hover:text-neonGreen transition-colors py-2" data-section="about">~/ About</a>
+    
+    <div class="flex flex-col gap-4">
+        <a href="#" onclick="showSection('home')" class="nav-link {{ Request::is('admin*') ? '' : 'active' }} text-sm font-mono" data-section="home">Home</a>
+        <a href="#" onclick="showSection('articles')" class="nav-link text-sm font-mono" data-section="articles">Articles</a>
+        <a href="#" onclick="showSection('projects')" class="nav-link text-sm font-mono" data-section="projects">Projects</a>
+        <a href="#" onclick="showSection('about')" class="nav-link text-sm font-mono" data-section="about">About</a>
+       
+    </div>
+        <!-- Pembatas Garis Tipis (Divider) -->
+    <div class="border-t border-border/50 my-2">
+
+        {{-- Autentikasi untuk Mobile --}}
+        @auth
+            <a href="{{ route('admin.index') }}" class="font-mono text-sm text-neonGreen hover:underline py-2">
+                ~/ Admin Panel
+            </a>
+            
+            <form action="{{ route('logout') }}" method="POST" class="w-full pt-2">
+                @csrf
+                <button type="submit" class="w-full text-left font-mono text-sm text-textSecondary hover:text-red-400 transition-colors py-2">
+                    ~/ Logout_
+                </button>
+            </form>
+        @else
+            <a href="{{ route('login') }}" class="font-mono text-sm text-textPrimary hover:text-neonGreen transition-colors py-2">
+                ~/ Login_
+            </a>
+        @endauth
+    </div>
 </div>
-</div>
+
 {{-- Overlay --}}
 <div class="fixed inset-0 bg-black/50 z-40 hidden" id="mobileOverlay" onclick="toggleMobileMenu()"></div>

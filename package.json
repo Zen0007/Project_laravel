@@ -14,5 +14,9 @@
         "laravel-vite-plugin": "^3.1.0",
         "postcss": "^8.5.15",
         "vite": "^8.0.14"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.108.1",
+        "pg": "^8.21.0"
     }
 }
