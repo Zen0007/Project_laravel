@@ -61,7 +61,7 @@ export class ArticleService {
             content: article.content,
             cover_image: article.cover_image || "",
             tags: article.tags || [],
-            read_time: article.read_time || null,
+            read_time: Date.getTime(),
         };
 
         const { data, error } = await supabase
