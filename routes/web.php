@@ -5,55 +5,97 @@ use App\Http\Controllers\OAuthController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-// ==========================================
-// PUBLIC ROUTES
-// ==========================================
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', function () {
-    // Jika admin sudah login, saat refresh / buka halaman ini akan otomatis ke /admin
+    // Jika sudah login dan tidak meminta halaman publik
     if (Auth::check() && request()->query('public') !== 'true') {
         return redirect()->route('admin.index');
     }
 
     return view('pages.blog');
-});
+})->name('home');
 
-// ==========================================
-// GUEST ROUTES (Hanya untuk yang BELUM Login)
-// ==========================================
+/*
+|--------------------------------------------------------------------------
+| Guest Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('guest')->group(function () {
-    // Form Login Page
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 
-    // Callback OAuth
-    Route::get('auth/{provider}/callback', [OAuthController::class, 'handleProviderCallback'])->name('auth.callback');
+    // Login Page
+    Route::get('/login', [LoginController::class, 'showLoginForm'])
+        ->name('login');
+
+    // OAuth Callback
+    Route::get('/auth/{provider}/callback', [OAuthController::class, 'handleProviderCallback'])
+        ->name('auth.callback');
 });
 
-// ==========================================
-// STATELESS OAUTH ENDPOINTS (Dipanggil via Fetch JS)
-// ==========================================
-Route::get('auth/{provider}/redirect', [OAuthController::class, 'redirectToProvider'])->name('auth.redirect');
+/*
+|--------------------------------------------------------------------------
+| OAuth Redirect
+|--------------------------------------------------------------------------
+*/
 
-// ==========================================
-// AUTH ROUTES (Khusus yang SUDAH Login)
-// ==========================================
+Route::get('/auth/{provider}/redirect', [OAuthController::class, 'redirectToProvider'])
+    ->name('auth.redirect');
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('auth')->group(function () {
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-    // Admin Panel Area
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/', function () {
-            return view('admin.index');
-        })->name('index');
+    // Logout
+    Route::post('/logout', [LoginController::class, 'logout'])
+        ->name('logout');
 
-        Route::get('/articles', function () {
-            return view('admin.articles.home');
-        })->name('articles.index');
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Area
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+
+            // Dashboard / Home
+            Route::get('/', function () {
+                return view('admin.index');
+            })->name('index');
+
+            // Articles List
+            Route::get('/articles', function () {
+                return view('admin.index');
+            })->name('articles.index');
+
+            // Create Article
+            // Route::get('/articles/create', function () {
+            //     return view('admin.articles.create');
+            // })->name('articles.create');
+
+            // // Edit Article
+            // Route::get('/articles/{id}/edit', function ($id) {
+            //     return view('admin.articles.edit', compact('id'));
+            // })->name('articles.edit');
+        });
 });
 
-// ==========================================
-// FALLBACKS / UTILITIES
-// ==========================================
-Route::get('/forgot-password', function () {
-    return 'Halaman Lupa Password';
-})->name('password.request');
+/*
+|--------------------------------------------------------------------------
+| Utility Pages
+|--------------------------------------------------------------------------
+*/
+
+// Route::get('/forgot-password', function () {
+//     return view('auth.forgot-password');
+// })->name('password.request');

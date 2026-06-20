@@ -7,21 +7,31 @@
         </button>
     </div>
     
-    <div class="flex flex-col gap-4">
-        <a href="#" onclick="showSection('home')" class="nav-link {{ Request::is('admin*') ? '' : 'active' }} text-sm font-mono" data-section="home">Home</a>
-        <a href="#" onclick="showSection('articles')" class="nav-link text-sm font-mono" data-section="articles">Articles</a>
-        <a href="#" onclick="showSection('projects')" class="nav-link text-sm font-mono" data-section="projects">Projects</a>
-        <a href="#" onclick="showSection('about')" class="nav-link text-sm font-mono" data-section="about">About</a>
-       
-    </div>
-        <!-- Pembatas Garis Tipis (Divider) -->
-    <div class="border-t border-border/50 my-2">
+<div class="flex flex-col gap-4">
+    @if(Request::is('admin*'))
+        {{-- State Terbuka di Halaman Admin Dashboard --}}
+        <a href="/" class="text-sm font-mono text-textSecondary hover:text-neonGreen py-2">Home</a>
+        <a href="{{ route('admin.index') }}" class="text-sm font-mono text-neonGreen font-bold py-2">Articles</a>
+    @else
+        {{-- State Terbuka di Halaman Utama User --}}
+        <a href="#" onclick="showSection('home'); toggleMobileMenu();" class="nav-link active text-sm font-mono" data-section="home">Home</a>
+        <a href="#" onclick="showSection('articles'); toggleMobileMenu();" class="nav-link text-sm font-mono" data-section="articles">Articles</a>
+        <a href="#" onclick="showSection('projects'); toggleMobileMenu();" class="nav-link text-sm font-mono" data-section="projects">Projects</a>
+        <a href="#" onclick="showSection('about'); toggleMobileMenu();" class="nav-link text-sm font-mono" data-section="about">About</a>
+    @endif
+</div>
 
+    <!-- Pembatas Garis Tipis (Divider) -->
+    <div class="border-t border-border/50 my-4"></div>
+
+    <div>
         {{-- Autentikasi untuk Mobile --}}
         @auth
-            <a href="{{ route('admin.index') }}" class="font-mono text-sm text-neonGreen hover:underline py-2">
-                ~/ Admin Panel
-            </a>
+            @if(!Request::is('admin*'))
+                <a href="{{ route('admin.index') }}" class="block font-mono text-sm text-neonGreen hover:underline py-2">
+                    ~/ Admin Panel
+                </a>
+            @endif
             
             <form action="{{ route('logout') }}" method="POST" class="w-full pt-2">
                 @csrf
@@ -30,7 +40,7 @@
                 </button>
             </form>
         @else
-            <a href="{{ route('login') }}" class="font-mono text-sm text-textPrimary hover:text-neonGreen transition-colors py-2">
+            <a href="{{ route('login') }}" class="block font-mono text-sm text-textPrimary hover:text-neonGreen transition-colors py-2">
                 ~/ Login_
             </a>
         @endauth

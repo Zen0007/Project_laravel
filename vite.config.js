@@ -4,8 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
     plugins: [
+        tailwindcss(),
         laravel({
             input: [
+                "resources/css/admin.css",
                 "resources/css/blog.css",
                 "resources/js/blog.js",
                 "resources/js/auth.js",
