@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -45,27 +45,26 @@
 
     @stack('styles')
 </head>
-<body class="grid-bg">
+<body class="grid-bg flex flex-col min-h-screen">
 
-    {{-- Reading Progress Bar --}}
-    <div class="reading-progress" id="readingProgress" style="width: 0%;"></div>
+    {{-- PROGRESS BAR --}}
+    <div class="reading-progress" id="readingProgress"></div>
 
-    {{-- Toast Notification --}}
+    {{-- TOAST --}}
     <div class="toast" id="toast"></div>
 
-    {{-- Navigation --}}
+    {{-- NAVBAR (WAJIB Z-INDEX) --}}
     @include('partials.navbar')
 
-    {{-- Mobile Menu --}}
-    @include('partials.mobile-menu')
+    {{-- MAIN CONTENT --}}
+    <main class="flex-1 relative">
+        @yield('content')
+    </main>
 
-    {{-- Main Content --}}
-    @yield('content')
-
-    {{-- Footer --}}
+    {{-- FOOTER (HARUS DI LUAR SECTION) --}}
     @include('partials.footer')
 
-    {{-- <script src="{{ asset('js/blog.js') }}"></script> --}}
     @stack('scripts')
+<script type="module" src="{{ asset('js/blog.js') }}" defer></script>
 </body>
 </html>

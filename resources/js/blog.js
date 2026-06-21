@@ -1,7 +1,7 @@
 import { ArticleService } from "./api";
 
 // Initialize Lucide icons
-lucide.createIcons();
+// lucide.createIcons();
 
 async function initBlog() {
     const grid = document.getElementById("articlesGrid");
@@ -10,7 +10,9 @@ async function initBlog() {
     try {
         console.log("status");
         // Fetch all articles from Supabase using your api.js service
-        const articles = await ArticleService.getAll();
+        const result = await ArticleService.getAll();
+        const articles = result.data || []; // FIXED: Unpack data array from the result object
+        console.log(articles);
 
         if (articles.length === 0) {
             grid.innerHTML = `<p class="text-textSecondary font-mono text-sm col-span-full text-center">No articles found.</p>`;
@@ -22,11 +24,29 @@ async function initBlog() {
             .map((article) => ArticleService.renderCard(article))
             .join("");
 
-        // Re-initialize icons for the newly injected HTML
-        lucide.createIcons();
+        // FIXED: Tambahkan pengecekan typeof lucide di sini agar tidak crash jika CDN lambat/gagal
+        if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+        }
     } catch (error) {
         console.error("Error fetching articles from Supabase:", error);
         showToast("⚠️ Failed to load articles from database");
+        // Show error state in grid
+        if (grid) {
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-8">
+                    <p class="text-red-500 font-mono text-sm">
+                        Failed to load articles. Please try again later.
+                    </p>
+                    <button 
+                        onclick="initBlog()" 
+                        class="mt-4 px-4 py-2 bg-neonGreen text-black rounded font-mono text-sm"
+                    >
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -89,6 +109,11 @@ window.showSection = function (name) {
 
         element.classList.remove("section-hidden");
         element.classList.add("section-visible");
+
+        // Jika pindah ke articles section, refresh data
+        if (name === "articles") {
+            initBlog();
+        }
     } catch (error) {
         console.error("Terjadi error saat mengubah section konten:", error);
     }
@@ -99,9 +124,39 @@ window.showArticle = async function (id) {
     try {
         const article = await ArticleService.getById(id);
 
+        if (!article) {
+            showToast("Article not found");
+            return;
+        }
+
+        // Parse content untuk mendapatkan tags
+        let tags = [];
+        let contentHtml = "";
+
+        try {
+            const parsedContent =
+                typeof article.content === "string"
+                    ? JSON.parse(article.content)
+                    : article.content;
+
+            tags = parsedContent.tags || [];
+
+            // Format content untuk display
+            contentHtml = `<pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-auto font-mono text-sm">
+                ${JSON.stringify(parsedContent, null, 2)}
+            </pre>`;
+        } catch {
+            contentHtml = `<p>${article.content}</p>`;
+        }
+
+        // Calculate read time
+        const readTime =
+            article.read_time ||
+            ArticleService.estimateReadTime(article.content);
+
         document.getElementById("articleMeta").innerHTML = `
             <div class="flex flex-wrap gap-2 mb-4">
-                ${ArticleService.buildTagsHtml(article.tags)}
+                ${ArticleService.buildTagsHtml(article.content)}
             </div>
 
             <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">
@@ -114,13 +169,35 @@ window.showArticle = async function (id) {
                 </span>
                 <span>·</span>
                 <span>
-                    ${article.read_time ?? ""}
+                    ${readTime}
                 </span>
+                ${
+                    article.updated_at !== article.created_at
+                        ? `
+                    <span>·</span>
+                    <span class="text-neonGreen">
+                        Updated ${ArticleService.formatDate(article.updated_at)}
+                    </span>
+                `
+                        : ""
+                }
             </div>
+            
+            ${
+                article.excerpt
+                    ? `
+                <div class="mt-4 p-4 bg-surfaceLight rounded-lg">
+                    <p class="text-textSecondary italic">${article.excerpt}</p>
+                </div>
+            `
+                    : ""
+            }
         `;
 
         document.getElementById("articleContent").innerHTML = article.content;
         showSection("article-detail");
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
         console.error(error);
         showToast("Failed loading article");
@@ -128,7 +205,9 @@ window.showArticle = async function (id) {
 };
 
 // ==================== TAG FILTERING ====================
-window.filterArticles = function (tag) {
+window.filterArticles = async function (tag) {
+    console.log("Filtering by tag:", tag);
+
     document.querySelectorAll(".tag-btn").forEach((btn) => {
         btn.classList.remove(
             "active",
@@ -148,32 +227,87 @@ window.filterArticles = function (tag) {
         }
     });
 
-    document.querySelectorAll(".article-card").forEach((card) => {
-        const cardTags = card.dataset.tags.split(",");
-        if (tag === "all" || cardTags.includes(tag)) {
-            card.style.display = "block";
-            card.style.animation = "fadeIn 0.3s ease";
-        } else {
-            card.style.display = "none";
-        }
-    });
-};
+    if (tag === "all") {
+        // Show all articles
+        document.querySelectorAll(".article-card").forEach((card) => {
+            card.style.opacity = "1";
+            card.style.transform = "scale(1)";
+            card.style.pointerEvents = "auto";
+            card.style.position = "relative";
+        });
+    } else {
+        // Filter by tag - check data-tags attribute
+        document.querySelectorAll(".article-card").forEach((card) => {
+            const cardTags = card.dataset.tags.split(",").map((t) => t.trim());
 
+            if (cardTags.includes(tag)) {
+                card.style.opacity = "1";
+                card.style.transform = "scale(1)";
+                card.style.pointerEvents = "auto";
+                card.style.position = "relative";
+            } else {
+                card.style.opacity = "0";
+                card.style.transform = "scale(0.98)";
+                card.style.pointerEvents = "none";
+                card.style.position = "absolute";
+            }
+        });
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+};
+window.searchArticles = async function () {
+    const searchInput = document.getElementById("searchInput");
+    const searchTerm = searchInput?.value?.trim() || "";
+
+    try {
+        const result = await ArticleService.getAll(1, 50, searchTerm);
+        const articles = result.data || [];
+
+        const grid = document.getElementById("articlesGrid");
+        if (!grid) return;
+
+        if (articles.length === 0) {
+            grid.innerHTML = `
+                <p class="text-textSecondary font-mono text-sm col-span-full text-center">
+                    No articles found for "${searchTerm}"
+                </p>
+            `;
+            return;
+        }
+
+        grid.innerHTML = articles
+            .map((article) => ArticleService.renderCard(article))
+            .join("");
+
+        lucide.createIcons();
+    } catch (error) {
+        console.error("Error searching articles:", error);
+        showToast("⚠️ Search failed");
+    }
+};
 // ==================== COPY CODE ====================
 window.copyCode = function (btn) {
     const codeBlock = btn.closest(".code-block");
     const code = codeBlock.querySelector("pre").textContent;
-    navigator.clipboard.writeText(code).then(() => {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
-        btn.classList.add("text-neonGreen");
-        lucide.createIcons();
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.classList.remove("text-neonGreen");
+    navigator.clipboard
+        .writeText(code)
+        .then(() => {
+            const originalText = btn.innerHTML;
+            btn.innerHTML =
+                '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+            btn.classList.add("text-neonGreen");
             lucide.createIcons();
-        }, 2000);
-    });
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove("text-neonGreen");
+                lucide.createIcons();
+            }, 2000);
+        })
+        .catch((err) => {
+            console.error("Failed to copy:", err);
+            showToast("Failed to copy code");
+        });
 };
 
 // ==================== TOAST ====================
@@ -265,14 +399,6 @@ window.handleContactSubmit = function (e) {
     }, 1200);
 };
 
-// window.toggleMobileMenu = toggleMobileMenu;
-// window.showSection = showSection;
-// window.showArticle = showArticle;
-// window.filterArticles = filterArticles;
-// window.copyCode = copyCode;
-// window.handleContactSubmit = handleContactSubmit;
-// window.toggleThemeAccent = toggleThemeAccent;
-
 // ==================== KEYBOARD SHORTCUTS ====================
 document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -286,6 +412,14 @@ document.addEventListener("keydown", (e) => {
     }
 });
 document.addEventListener("DOMContentLoaded", () => {
-    lucide.createIcons();
-    initBlog(); // <-- Trigger the Supabase data fetch right here
+    // Jalankan lucide dengan proteksi typeof
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    } else {
+        console.warn("Lucide library belum termuat dengan benar dari CDN.");
+    }
+    initBlog();
 });
+
+// EXPOSE fungsi ke global scope agar tombol 'Retry' di HTML (onclick="initBlog()") bisa memanggilnya
+window.initBlog = initBlog;

@@ -1,4 +1,4 @@
-```blade
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -229,4 +229,4 @@
     @stack('scripts')
 </body>
 </html>
-```
+

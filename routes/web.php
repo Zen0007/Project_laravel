@@ -7,12 +7,11 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Public Routes
+| PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
 
 Route::get('/', function () {
-    // Jika sudah login dan tidak meminta halaman publik
     if (Auth::check() && request()->query('public') !== 'true') {
         return redirect()->route('admin.index');
     }
@@ -22,24 +21,22 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Guest Routes
+| GUEST ROUTES
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('guest')->group(function () {
 
-    // Login Page
     Route::get('/login', [LoginController::class, 'showLoginForm'])
         ->name('login');
 
-    // OAuth Callback
     Route::get('/auth/{provider}/callback', [OAuthController::class, 'handleProviderCallback'])
         ->name('auth.callback');
 });
 
 /*
 |--------------------------------------------------------------------------
-| OAuth Redirect
+| OAUTH REDIRECT
 |--------------------------------------------------------------------------
 */
 
@@ -48,19 +45,21 @@ Route::get('/auth/{provider}/redirect', [OAuthController::class, 'redirectToProv
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes
+| AUTH ROUTES
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('auth')->group(function () {
 
-    // Logout
+    /*
+    | Logout
+    */
     Route::post('/logout', [LoginController::class, 'logout'])
         ->name('logout');
 
     /*
     |--------------------------------------------------------------------------
-    | Admin Area
+    | ADMIN ROUTES
     |--------------------------------------------------------------------------
     */
 
@@ -68,34 +67,19 @@ Route::middleware('auth')->group(function () {
         ->name('admin.')
         ->group(function () {
 
-            // Dashboard / Home
+            /*
+            | Dashboard
+            */
             Route::get('/', function () {
                 return view('admin.index');
             })->name('index');
 
-            // Articles List
+            /*
+            | Articles Page
+            */
             Route::get('/articles', function () {
-                return view('admin.index');
+                return view('admin.articles.articles');
             })->name('articles.index');
 
-            // Create Article
-            // Route::get('/articles/create', function () {
-            //     return view('admin.articles.create');
-            // })->name('articles.create');
-
-            // // Edit Article
-            // Route::get('/articles/{id}/edit', function ($id) {
-            //     return view('admin.articles.edit', compact('id'));
-            // })->name('articles.edit');
         });
 });
-
-/*
-|--------------------------------------------------------------------------
-| Utility Pages
-|--------------------------------------------------------------------------
-*/
-
-// Route::get('/forgot-password', function () {
-//     return view('auth.forgot-password');
-// })->name('password.request');

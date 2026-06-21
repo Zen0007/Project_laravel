@@ -48,6 +48,7 @@ function showAdminToast(message) {
 }
 
 // 2. Fungsi Utama Merender Data Tabel & Statistik Dashboard
+// 2. Fungsi Utama Merender Data Tabel & Statistik Dashboard
 async function refreshDashboardTable() {
     const tableBody = document.getElementById("articlesTableBody");
     const statTotal = document.getElementById("statTotalArticles");
@@ -56,9 +57,13 @@ async function refreshDashboardTable() {
     if (!tableBody) return;
 
     try {
-        const articles = await ArticleService.getAll();
+        // 1. Panggil API service
+        const result = await ArticleService.getAll();
 
-        // Update counter stat komponen di atas tabel
+        // 2. FIXED: Ekstrak array data dari dalam objek response envelope
+        const articles = result.data || [];
+
+        // Update counter stat komponen di atas tabel menggunakan array yang valid
         if (statTotal)
             statTotal.textContent = String(articles.length).padStart(2, "0");
         if (logCountText)
@@ -79,13 +84,26 @@ async function refreshDashboardTable() {
             .map((article) => {
                 // Parsing data tags yang berbentuk Array ataupun String koma
                 let tagsArray = [];
-                if (Array.isArray(article.tags)) {
-                    tagsArray = article.tags;
+
+                // Cek tags dari root properti article, ATAU coba parse jika disimpan di dalam JSON content
+                let sourceTags = article.tags;
+                if (!sourceTags && article.content) {
+                    try {
+                        const parsedContent =
+                            typeof article.content === "string"
+                                ? JSON.parse(article.content)
+                                : article.content;
+                        sourceTags = parsedContent.tags;
+                    } catch (e) {}
+                }
+
+                if (Array.isArray(sourceTags)) {
+                    tagsArray = sourceTags;
                 } else if (
-                    typeof article.tags === "string" &&
-                    article.tags.trim() !== ""
+                    typeof sourceTags === "string" &&
+                    sourceTags.trim() !== ""
                 ) {
-                    tagsArray = article.tags.split(",").map((t) => t.trim());
+                    tagsArray = sourceTags.split(",").map((t) => t.trim());
                 }
 
                 const tagBadges =
@@ -127,13 +145,81 @@ async function refreshDashboardTable() {
     }
 }
 
+function initNavIndicator() {
+    const nav = document.getElementById("desktopNav");
+    const indicator = document.getElementById("navIndicator");
+
+    if (!nav || !indicator) return;
+
+    const links = nav.querySelectorAll(".nav-link");
+    const active = nav.querySelector(".nav-link.active");
+
+    const move = (target) => {
+        if (!target) return;
+
+        const navRect = nav.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+
+        indicator.style.width = `${targetRect.width}px`;
+        indicator.style.transform = `translateX(${targetRect.left - navRect.left}px)`;
+    };
+
+    // initial position
+    if (active) {
+        requestAnimationFrame(() => move(active));
+    }
+
+    // hover effect
+    links.forEach((link) => {
+        link.addEventListener("mouseenter", () => move(link));
+    });
+
+    // reset on leave
+    nav.addEventListener("mouseleave", () => {
+        if (active) move(active);
+    });
+
+    // responsive fix
+    window.addEventListener("resize", () => {
+        const activeNow = nav.querySelector(".nav-link.active");
+        if (activeNow) move(activeNow);
+    });
+}
+function initMobileMenu() {
+    const btn = document.getElementById("mobileMenuBtn");
+    const menu = document.getElementById("mobileMenu");
+
+    if (!btn || !menu) return;
+
+    let open = false;
+
+    btn.addEventListener("click", () => {
+        open = !open;
+
+        if (open) {
+            menu.style.maxHeight = menu.scrollHeight + "px";
+            btn.innerHTML = '<i data-lucide="x"></i>';
+        } else {
+            menu.style.maxHeight = "0px";
+            btn.innerHTML = '<i data-lucide="menu"></i>';
+        }
+
+        if (window.lucide) lucide.createIcons();
+    });
+}
+
 // 3. Event Listener Utama untuk Lifecycle DOM & Handler Form Submit
 document.addEventListener("DOMContentLoaded", () => {
-    // Jalankan load data pertama kali
-    refreshDashboardTable();
+    // =====================================================
+    // 1. DASHBOARD INIT
+    // =====================================================
+    refreshDashboardTable?.();
 
-    // Integrasikan Event Form Submit untuk Tambah Artikel Baru
+    // =====================================================
+    // 2. CREATE ARTICLE FORM
+    // =====================================================
     const createForm = document.getElementById("createArticleForm");
+
     if (createForm) {
         createForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -141,13 +227,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const submitBtn = createForm.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
 
-            // Kumpulkan data value dari masing-masing element form input
             const title = document.getElementById("formTitle").value;
             let slug = document.getElementById("formSlug").value;
-            const tags = document.getElementById("formTags").value;
-            const content = document.getElementById("formContent").value;
+            const tagsInput = document.getElementById("formTags").value;
+            const contentRaw = document.getElementById("formContent").value;
 
-            // Otomatis bikin format slug seandainya kolom dikosongkan
             if (!slug) {
                 slug = title
                     .toLowerCase()
@@ -155,35 +239,65 @@ document.addEventListener("DOMContentLoaded", () => {
                     .replace(/(^-|-$)+/g, "");
             }
 
-            // UI State Loading
             submitBtn.textContent = "[COMPILING...]";
             submitBtn.disabled = true;
 
             try {
-                // Panggil method pipeline create kirim data ke Supabase backend
-                await ArticleService.create({ title, slug, tags, content });
+                // 1. Pecah string tags input dari koma menjadi Array bersih (lowercase & tanpa spasi ekstra)
+                const tagsArray = tagsInput
+                    ? tagsInput
+                          .split(",")
+                          .map((t) => t.trim().toLowerCase())
+                          .filter((t) => t !== "")
+                    : [];
 
-                showAdminToast("✓ COMPILE_SUCCESS: Article metrics pushed.");
-                window.ArticleService.closeCreateModal(); // Tutup modal lewat scope global
-                await refreshDashboardTable(); // Live refresh records tabel tanpa reload halaman browser
-            } catch (error) {
-                console.error("Compilation submission rejected:", error);
-                showAdminToast(
-                    "❌ COMPILE_ERROR: Missing credentials or database drop.",
-                );
+                // 2. Bungkus teks artikel dan array tags ke dalam satu objek terstruktur
+                const structuredContent = {
+                    text: contentRaw,
+                    tags: tagsArray,
+                };
+
+                // 3. Kirim data yang sudah matang ke database melalui service
+                await ArticleService.create({
+                    title: title,
+                    slug: slug,
+                    content: structuredContent, // content sekarang membawa data teks + tags
+                    excerpt: contentRaw.substring(0, 150) + "...", // otomatis membuat cuplikan teks
+                });
+
+                showAdminToast("✓ COMPILE_SUCCESS");
+
+                // Tutup modal form admin
+                window.ArticleService?.closeCreateModal?.();
+
+                // Refresh tabel dashboard agar baris data baru langsung muncul
+                await refreshDashboardTable?.();
+            } catch (err) {
+                console.error(err);
+                showAdminToast("❌ COMPILE_ERROR");
             } finally {
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
             }
         });
     }
+
+    // =====================================================
+    // 3. NAV INDICATOR SYSTEM (OPTIMIZED)
+    // =====================================================
+    initNavIndicator();
+
+    // =====================================================
+    // 4. MOBILE MENU
+    // =====================================================
+    initMobileMenu();
 });
 
 function moveIndicator(target) {
-    const indicator = document.getElementById("navIndicator");
     const nav = document.getElementById("desktopNav");
+    const indicator = document.getElementById("navIndicator");
 
-    if (!indicator || !target || !nav) return;
+    if (!nav || !indicator || !target) return;
 
     const navRect = nav.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
@@ -226,4 +340,100 @@ document.addEventListener("DOMContentLoaded", () => {
             moveIndicator(active);
         }
     });
+});
+// Mobile Burger Menu
+document.addEventListener("DOMContentLoaded", () => {
+    const mobileBtn = document.getElementById("mobileMenuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    if (!mobileBtn || !mobileMenu) return;
+
+    let isOpen = false;
+
+    mobileBtn.addEventListener("click", () => {
+        isOpen = !isOpen;
+
+        if (isOpen) {
+            mobileMenu.style.maxHeight = mobileMenu.scrollHeight + "px";
+
+            mobileBtn.innerHTML = '<i data-lucide="x" class="w-6 h-6"></i>';
+        } else {
+            mobileMenu.style.maxHeight = "0px";
+
+            mobileBtn.innerHTML = '<i data-lucide="menu" class="w-6 h-6"></i>';
+        }
+
+        if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+        }
+    });
+});
+// Tab Switcher untuk SPA Admin Area
+window.switchAdminTab = function (event, tabName) {
+    if (event) {
+        event.preventDefault(); // Mencegah full page reload/restart
+    }
+
+    console.log("Switching tab to:", tabName); // Untuk debugging di console browser
+
+    // 1. Ambil semua kontainer seksi admin
+    const dashboardSection = document.getElementById("admin-section-dashboard");
+    const articlesSection = document.getElementById("admin-section-articles");
+
+    if (!dashboardSection || !articlesSection) {
+        console.error("Error: Kontainer seksi admin tidak ditemukan di DOM!");
+        return;
+    }
+
+    // 2. Sembunyikan atau tampilkan seksi berdasarkan tabName
+    if (tabName === "dashboard") {
+        dashboardSection.classList.remove("hidden", "section-hidden");
+        dashboardSection.classList.add("section-visible");
+
+        articlesSection.classList.remove("section-visible");
+        articlesSection.classList.add("hidden", "section-hidden");
+    } else if (tabName === "articles") {
+        articlesSection.classList.remove("hidden", "section-hidden");
+        articlesSection.classList.add("section-visible");
+
+        dashboardSection.classList.remove("section-visible");
+        dashboardSection.classList.add("hidden", "section-hidden");
+
+        // Picu pemuatan ulang data tabel jika fungsinya tersedia
+        if (typeof refreshDashboardTable === "function") {
+            refreshDashboardTable();
+        }
+    }
+
+    // 3. Atur ulang class active text pada menu Navbar Desktop
+    document.querySelectorAll("#desktopNav .nav-link").forEach((link) => {
+        link.classList.remove("active", "text-neonGreen", "font-bold");
+        link.classList.add("text-textSecondary");
+    });
+
+    // 4. Set menu yang sedang aktif saat ini
+    const clickedLink = document.querySelector(
+        `#desktopNav .nav-link[data-tab="${tabName}"]`,
+    );
+    if (clickedLink) {
+        clickedLink.classList.add("active", "text-neonGreen", "font-bold");
+        clickedLink.classList.remove("text-textSecondary");
+
+        // Picu animasi garis bawah (navIndicator) bawaan kamu
+        const indicator = document.getElementById("navIndicator");
+        if (indicator) {
+            indicator.style.width = `${clickedLink.offsetWidth}px`;
+            indicator.style.left = `${clickedLink.offsetLeft}px`;
+        }
+    }
+};
+
+// Pastikan ketika halaman pertama kali dimuat, inisialisasi tab awal berjalan dengan aman
+document.addEventListener("DOMContentLoaded", () => {
+    // Jalankan default tab ke dashboard tanpa memicu event mouseenter/leave bermasalah
+    const activeLink = document.querySelector("#desktopNav .nav-link.active");
+    if (activeLink) {
+        const defaultTab = activeLink.getAttribute("data-tab") || "dashboard";
+        window.switchAdminTab(null, defaultTab);
+    }
 });

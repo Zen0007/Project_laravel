@@ -8,6 +8,7 @@ body {
     color: #e6e6e6;
     font-family: "Inter", sans-serif;
 }
+
 ::selection {
     background: #00ff00;
     color: #0a0a0a;
@@ -194,7 +195,7 @@ body {
 
 /* Article card hover */
 .article-card {
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
     border: 1px solid #2a2a2a;
 }
 .article-card:hover {
@@ -204,6 +205,10 @@ body {
 }
 
 /* Nav link */
+nav {
+    position: relative;
+    z-index: 50;
+}
 .nav-link {
     position: relative;
     transition: color 0.2s;
@@ -239,10 +244,17 @@ body {
 
 /* Section transitions */
 .section-hidden {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
 }
 .section-visible {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    position: relative;
     animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn {
