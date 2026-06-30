@@ -26,12 +26,27 @@ Route::get('/', function () {
 */
 
 Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 
-    Route::get('/login', [LoginController::class, 'showLoginForm'])
-        ->name('login');
+    // Route Baru untuk Jembatan Session dari JS Fetch
+    Route::post('/auth/session-login', function (\Illuminate\Http\Request $request) {
+        $data = $request->validate([
+            'email' => 'required|email'
+        ]);
 
-    Route::get('/auth/{provider}/callback', [OAuthController::class, 'handleProviderCallback'])
-        ->name('auth.callback');
+        // Cari user di database lokal berdasarkan email dari token
+        $user = \App\Models\User::query()->where('email', $data['email'])->first();
+
+        if ($user) {
+            // Daftarkan session login ke state Laravel
+            \Illuminate\Support\Facades\Auth::login($user, true);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'User tidak terdaftar di database web.'], 404);
+    });
+
+    Route::get('/auth/{provider}/callback', [OAuthController::class, 'handleProviderCallback'])->name('auth.callback');
 });
 
 /*
@@ -80,6 +95,5 @@ Route::middleware('auth')->group(function () {
             Route::get('/articles', function () {
                 return view('admin.articles.articles');
             })->name('articles.index');
-
         });
 });

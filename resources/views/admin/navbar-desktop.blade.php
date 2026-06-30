@@ -2,27 +2,26 @@
 
     {{-- Center Navigation --}}
     <div class="flex-1 flex justify-center">
-        <div id="desktopNav" class="relative flex items-center gap-10 py-2">
-            
+        {{-- Ubah baris ini di navbar-desktop.blade.php --}}
+        <div id="desktopNav" class="relative flex items-center gap-10 py-2 overflow-hidden">
+
             {{-- Animated Slider Indicator --}}
             {{-- Hapus durasi transisi inline/tailwind agar tidak balapan dengan CSS asli --}}
             <span id="navIndicator" class="absolute bottom-0 left-0 h-[2px] bg-neonGreen rounded-full"></span>
 
-            <a 
-                href="#" 
-                onclick="switchAdminTab(event, 'dashboard')" 
+            <a
+                href="#"
+                onclick="switchAdminTab(event, 'dashboard')"
                 class="nav-link text-sm font-mono tracking-wide {{ request()->routeIs('admin.index') ? 'active text-neonGreen font-bold' : 'text-textSecondary hover:text-neonGreen' }}"
-                data-tab="dashboard"
-            >
+                data-tab="dashboard">
                 Home
             </a>
 
-            <a 
-                href="#" 
-                onclick="switchAdminTab(event, 'articles')" 
+            <a
+                href="#"
+                onclick="switchAdminTab(event, 'articles')"
                 class="nav-link text-sm font-mono tracking-wide {{ request()->routeIs('admin.articles.*') ? 'active text-neonGreen font-bold' : 'text-textSecondary hover:text-neonGreen' }}"
-                data-tab="articles"
-            >
+                data-tab="articles">
                 Articles
             </a>
         </div>

@@ -1,4 +1,5 @@
 import { ArticleService } from "./api";
+import { createIcons, icons } from "lucide";
 
 // Initialize Lucide icons
 // lucide.createIcons();
@@ -412,12 +413,8 @@ document.addEventListener("keydown", (e) => {
     }
 });
 document.addEventListener("DOMContentLoaded", () => {
-    // Jalankan lucide dengan proteksi typeof
-    if (typeof lucide !== "undefined") {
-        lucide.createIcons();
-    } else {
-        console.warn("Lucide library belum termuat dengan benar dari CDN.");
-    }
+    createIcons({ icons });
+
     initBlog();
 });
 

@@ -48,7 +48,17 @@ function showAdminToast(message) {
 }
 
 // 2. Fungsi Utama Merender Data Tabel & Statistik Dashboard
-// 2. Fungsi Utama Merender Data Tabel & Statistik Dashboard
+// Helper fungsi untuk mencegah XSS Injection
+function escapeHTML(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 async function refreshDashboardTable() {
     const tableBody = document.getElementById("articlesTableBody");
     const statTotal = document.getElementById("statTotalArticles");
@@ -60,10 +70,10 @@ async function refreshDashboardTable() {
         // 1. Panggil API service
         const result = await ArticleService.getAll();
 
-        // 2. FIXED: Ekstrak array data dari dalam objek response envelope
+        // 2. Ekstrak array data dari dalam objek response envelope
         const articles = result.data || [];
 
-        // Update counter stat komponen di atas tabel menggunakan array yang valid
+        // Update counter stat komponen
         if (statTotal)
             statTotal.textContent = String(articles.length).padStart(2, "0");
         if (logCountText)
@@ -79,22 +89,33 @@ async function refreshDashboardTable() {
             return;
         }
 
-        // Mapping array data dari Supabase ke dalam baris HTML element tabel
+        // Mapping array data ke dalam baris HTML element tabel
         tableBody.innerHTML = articles
             .map((article) => {
-                // Parsing data tags yang berbentuk Array ataupun String koma
                 let tagsArray = [];
-
                 // Cek tags dari root properti article, ATAU coba parse jika disimpan di dalam JSON content
                 let sourceTags = article.tags;
+
                 if (!sourceTags && article.content) {
-                    try {
-                        const parsedContent =
-                            typeof article.content === "string"
-                                ? JSON.parse(article.content)
-                                : article.content;
-                        sourceTags = parsedContent.tags;
-                    } catch (e) {}
+                    // Pastikan content adalah string DAN terlihat seperti format JSON (diawali '{' atau '[')
+                    // Jika diawali '<', berarti itu HTML, jadi lewati saja (jangan di-parse)
+                    const isString = typeof article.content === "string";
+                    const isJsonLikely =
+                        isString &&
+                        (article.content.trim().startsWith("{") ||
+                            article.content.trim().startsWith("["));
+
+                    if (isJsonLikely) {
+                        try {
+                            const parsedContent = JSON.parse(article.content);
+                            sourceTags = parsedContent.tags;
+                        } catch (e) {
+                            // Biarkan kosong jika memang gagal parse JSON yang valid
+                        }
+                    } else if (!isString) {
+                        // Jika content ternyata sudah berupa objek literal dari database (bukan string)
+                        sourceTags = article.content.tags;
+                    }
                 }
 
                 if (Array.isArray(sourceTags)) {
@@ -111,20 +132,21 @@ async function refreshDashboardTable() {
                         ? tagsArray
                               .map(
                                   (t) =>
-                                      `<span class="text-[10px] text-neonGreen/80 bg-neonGreen/5 px-1.5 py-0.5 rounded border border-neonGreen/10 mr-1">#${t}</span>`,
+                                      `<span class="text-[10px] text-neonGreen/80 bg-neonGreen/5 px-1.5 py-0.5 rounded border border-neonGreen/10 mr-1">#${escapeHTML(t)}</span>`,
                               )
                               .join("")
                         : '<span class="text-textMuted/40">-</span>';
 
+                // Gunakan escapeHTML pada variabel dinamis yang berasal dari input user
                 return `
                 <tr class="hover:bg-surfaceLight/20 transition-colors border-b border-border/30 font-mono text-sm">
-                    <td class="p-4 text-neonGreen font-bold">#${String(article.id).slice(-4)}</td>
-                    <td class="p-4 font-medium text-textPrimary max-w-xs truncate">${article.title}</td>
-                    <td class="p-4 hidden sm:table-cell text-textSecondary/70 truncate max-w-[150px]">/${article.slug}</td>
+                    <td class="p-4 text-neonGreen font-bold">#${escapeHTML(String(article.id).slice(-4))}</td>
+                    <td class="p-4 font-medium text-textPrimary max-w-xs truncate">${escapeHTML(article.title)}</td>
+                    <td class="p-4 hidden sm:table-cell text-textSecondary/70 truncate max-w-[150px]">/${escapeHTML(article.slug)}</td>
                     <td class="p-4">${tagBadges}</td>
                     <td class="p-4 text-right space-x-2 whitespace-nowrap">
-                        <button class="text-textPrimary hover:text-neonGreen transition">[edit]</button>
-                        <button onclick="ArticleService.handleDeleteArticle('${article.id}')" class="text-red-400/70 hover:text-red-400 transition">
+                    <button onclick="handleEditClick('${escapeHTML(article.id)}')" class="text-textPrimary hover:text-neonGreen transition">[edit]</button>   
+                    <button onclick="ArticleService.handleDeleteArticle('${escapeHTML(article.id)}')" class="text-red-400/70 hover:text-red-400 transition">
                             [delete]
                         </button>
                     </td>
@@ -132,7 +154,6 @@ async function refreshDashboardTable() {
             })
             .join("");
 
-        // Re-inisialisasi icon Lucide pasca manipulasi innerHTML DOM dinamis
         if (typeof lucide !== "undefined") lucide.createIcons();
     } catch (error) {
         console.error("Dashboard engine failure:", error);
@@ -144,6 +165,153 @@ async function refreshDashboardTable() {
             </tr>`;
     }
 }
+
+// Variabel global sementara untuk menyimpan ID artikel yang sedang diedit
+let currentEditingId = null;
+
+async function handleEditClick(id) {
+    currentEditingId = id;
+    console.log("Fetching ID:", id);
+    try {
+        const response = await ArticleService.getById(id);
+        console.log("API Response:", response);
+
+        // FIXED: Jika response.data undefined, gunakan langsung objek response-nya
+        const article = response.data || response;
+
+        if (!article) {
+            throw new Error("Data artikel tidak ditemukan.");
+        }
+
+        openEditModal(article);
+    } catch (error) {
+        console.error("Failed to fetch article details:", error);
+        alert("Gagal mengambil data artikel.");
+    }
+}
+
+// Pastikan tetap ter-expose ke global scope
+window.handleEditClick = handleEditClick;
+
+// 1. Fungsi untuk membaca file baru yang dipilih oleh user (Preview Lokal)
+function previewSelectedImage(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById("editImagePreview");
+    const placeholder = document.getElementById("imagePlaceholderText");
+    const nameText = document.getElementById("editImageName");
+
+    if (file) {
+        nameText.textContent = file.name;
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+    }
+}
+
+// 2. Modifikasi fungsi openEditModal yang sudah ada untuk memuat gambar dari database
+function openEditModal(article) {
+    const modal = document.getElementById("editArticleModal");
+
+    // Reset input file dan teks nama file dari sesi sebelumnya
+    document.getElementById("editImageInput").value = "";
+    document.getElementById("editImageName").textContent = "No file chosen";
+
+    document.getElementById("editTitle").value = article.title || "";
+    document.getElementById("editSlug").value = article.slug || "";
+
+    // LOGIK PREVIEW GAMBAR DARI DATABASE
+    const preview = document.getElementById("editImagePreview");
+    const placeholder = document.getElementById("imagePlaceholderText");
+
+    // Asumsi properti dari database bernama article.image_url atau article.image
+    const currentImageUrl = article.image_url || article.image;
+
+    if (currentImageUrl) {
+        preview.src = currentImageUrl;
+        preview.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+    } else {
+        preview.src = "";
+        preview.classList.add("hidden");
+        placeholder.classList.remove("hidden");
+    }
+
+    // Penanganan tags
+    if (Array.isArray(article.tags)) {
+        document.getElementById("editTags").value = article.tags.join(", ");
+    } else {
+        document.getElementById("editTags").value = article.tags || "";
+    }
+
+    // Penanganan content
+    if (article.content && typeof article.content === "object") {
+        document.getElementById("editContent").value = JSON.stringify(
+            article.content,
+            null,
+            2,
+        );
+    } else {
+        document.getElementById("editContent").value = article.content || "";
+    }
+
+    modal.classList.remove("hidden");
+}
+
+// Daftarkan fungsi preview ke global scope window
+window.previewSelectedImage = previewSelectedImage;
+
+function closeEditModal() {
+    const modal = document.getElementById("editArticleModal");
+    modal.classList.add("hidden");
+    currentEditingId = null; // Reset ID
+}
+
+// Handler saat tombol submit [execute_update] ditekan
+async function handleEditFormSubmit(event) {
+    event.preventDefault(); // Mencegah reload halaman
+
+    if (!currentEditingId) return;
+
+    // Ambil data dari form
+    const title = document.getElementById("editTitle").value;
+    const slug = document.getElementById("editSlug").value;
+    const tagsInput = document.getElementById("editTags").value;
+    const content = document.getElementById("editContent").value;
+
+    // Proses string tag menjadi array
+    const tags = tagsInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t !== "");
+
+    // Susun payload sesuai struktur yang diharapkan oleh ArticleService.update
+    const updatedPayload = {
+        title,
+        slug,
+        tags,
+        content, // Di service kamu sudah ada logic auto-parse JSON jika ini string, jadi aman dilempar langsung
+    };
+
+    try {
+        // Eksekusi fungsi update yang kamu buat tadi
+        await ArticleService.update(currentEditingId, updatedPayload);
+
+        // Tutup modal dan refresh tabel agar data terbaru muncul
+        closeEditModal();
+        await refreshDashboardTable();
+
+        // Opsional: Beri notifikasi sukses bergaya log terminal
+        console.log(
+            `[SYSTEM] Article #${currentEditingId} successfully updated.`,
+        );
+    } catch (error) {
+        console.error("Failed to commit article update:", error);
+        alert(`Error: ${error.message || "Failed to update article"}`);
+    }
+}
+
+window.closeEditModal = closeEditModal;
+window.handleEditFormSubmit = handleEditFormSubmit;
 
 function initNavIndicator() {
     const nav = document.getElementById("desktopNav");
@@ -370,13 +538,26 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 // Tab Switcher untuk SPA Admin Area
 window.switchAdminTab = function (event, tabName) {
-    if (event) {
-        event.preventDefault(); // Mencegah full page reload/restart
-    }
+    if (event) event.preventDefault();
 
-    console.log("Switching tab to:", tabName); // Untuk debugging di console browser
+    const targetLink = event.currentTarget;
+    const navContainer = document.getElementById("desktopNav");
+    const indicator = document.getElementById("navIndicator");
 
-    // 1. Ambil semua kontainer seksi admin
+    if (!targetLink || !navContainer || !indicator) return;
+
+    // 1. KALKULASI PRESISI (Gunakan ini sebagai satu-satunya pengatur posisi)
+    const targetRect = targetLink.getBoundingClientRect();
+    const containerRect = navContainer.getBoundingClientRect();
+
+    const relativeLeft = targetRect.left - containerRect.left;
+    const targetWidth = targetRect.width;
+
+    // Terapkan posisi baru yang presisi
+    indicator.style.left = `${relativeLeft}px`;
+    indicator.style.width = `${targetWidth}px`;
+
+    // 2. Ambil semua kontainer seksi admin
     const dashboardSection = document.getElementById("admin-section-dashboard");
     const articlesSection = document.getElementById("admin-section-articles");
 
@@ -385,7 +566,7 @@ window.switchAdminTab = function (event, tabName) {
         return;
     }
 
-    // 2. Sembunyikan atau tampilkan seksi berdasarkan tabName
+    // 3. Sembunyikan atau tampilkan seksi berdasarkan tabName
     if (tabName === "dashboard") {
         dashboardSection.classList.remove("hidden", "section-hidden");
         dashboardSection.classList.add("section-visible");
@@ -405,13 +586,13 @@ window.switchAdminTab = function (event, tabName) {
         }
     }
 
-    // 3. Atur ulang class active text pada menu Navbar Desktop
+    // 4. Atur ulang class active text pada menu Navbar Desktop
     document.querySelectorAll("#desktopNav .nav-link").forEach((link) => {
         link.classList.remove("active", "text-neonGreen", "font-bold");
         link.classList.add("text-textSecondary");
     });
 
-    // 4. Set menu yang sedang aktif saat ini
+    // 5. Set menu yang sedang aktif saat ini (Hapus bagian penimpaan posisi indicator di sini)
     const clickedLink = document.querySelector(
         `#desktopNav .nav-link[data-tab="${tabName}"]`,
     );
@@ -419,21 +600,25 @@ window.switchAdminTab = function (event, tabName) {
         clickedLink.classList.add("active", "text-neonGreen", "font-bold");
         clickedLink.classList.remove("text-textSecondary");
 
-        // Picu animasi garis bawah (navIndicator) bawaan kamu
-        const indicator = document.getElementById("navIndicator");
-        if (indicator) {
-            indicator.style.width = `${clickedLink.offsetWidth}px`;
-            indicator.style.left = `${clickedLink.offsetLeft}px`;
-        }
+        // PENTING: Bagian penimpaan indicator.style.left dengan offsetLeft SUDAH DIHAPUS
+        // agar tidak merusak koordinat presisi yang sudah dihitung di atas.
     }
 };
 
-// Pastikan ketika halaman pertama kali dimuat, inisialisasi tab awal berjalan dengan aman
+// Otomatis posisikan kursor saat pertama kali halaman admin dimuat
 document.addEventListener("DOMContentLoaded", () => {
-    // Jalankan default tab ke dashboard tanpa memicu event mouseenter/leave bermasalah
     const activeLink = document.querySelector("#desktopNav .nav-link.active");
     if (activeLink) {
-        const defaultTab = activeLink.getAttribute("data-tab") || "dashboard";
-        window.switchAdminTab(null, defaultTab);
+        // Beri jeda 200ms agar browser selesai merender font teks terlebih dahulu
+        setTimeout(() => {
+            const navContainer = document.getElementById("desktopNav");
+            const indicator = document.getElementById("navIndicator");
+            if (navContainer && indicator) {
+                const targetRect = activeLink.getBoundingClientRect();
+                const containerRect = navContainer.getBoundingClientRect();
+                indicator.style.left = `${targetRect.left - containerRect.left}px`;
+                indicator.style.width = `${targetRect.width}px`;
+            }
+        }, 200);
     }
 });

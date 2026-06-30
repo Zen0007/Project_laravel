@@ -23,19 +23,31 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        // Cek fitur 'Remember Me'
         $remember = $request->has('remember');
 
-        // 2. Coba Autentikasi (Laravel otomatis mengecek hash password)
+        // 2. Coba Autentikasi
         if (Auth::attempt($credentials, $remember)) {
-            // Regenerasi session untuk keamanan (mencegah session fixation)
             $request->session()->regenerate();
 
-            // Redirect ke halaman admin jika sukses (atau halaman utama)
+            // JIKA REQUEST MEMINTA JSON (Dari JS Fetch/Axios)
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'redirect' => redirect()->intended(route('admin.index'))->getTargetUrl()
+                ]);
+            }
+
             return redirect()->intended(route('admin.index'));
         }
 
-        // 3. Jika Gagal, kembalikan error ke input email
+        // 3. Jika Gagal dan request meminta JSON
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kredensial yang Anda masukkan tidak cocok dengan data kami.'
+            ], 422);
+        }
+
         throw ValidationException::withMessages([
             'email' => 'Kredensial yang Anda masukkan tidak cocok dengan data kami.',
         ]);

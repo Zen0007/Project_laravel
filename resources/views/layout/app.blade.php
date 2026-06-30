@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <script>
         tailwind.config = {
             theme: {
@@ -39,12 +38,16 @@
                 }
             }
         }
+
+        console.log("lucide =", window.lucide);
     </script>
 
+    {{-- Kompilasi Asset Utama Menggunakan Vite --}}
     @vite(['resources/css/blog.css', 'resources/js/blog.js'])
 
     @stack('styles')
 </head>
+
 <body class="grid-bg flex flex-col min-h-screen">
 
     {{-- PROGRESS BAR --}}
@@ -53,7 +56,7 @@
     {{-- TOAST --}}
     <div class="toast" id="toast"></div>
 
-    {{-- NAVBAR (WAJIB Z-INDEX) --}}
+    {{-- NAVBAR --}}
     @include('partials.navbar')
 
     {{-- MAIN CONTENT --}}
@@ -61,10 +64,11 @@
         @yield('content')
     </main>
 
-    {{-- FOOTER (HARUS DI LUAR SECTION) --}}
+    {{-- FOOTER --}}
     @include('partials.footer')
 
     @stack('scripts')
-<script type="module" src="{{ asset('js/blog.js') }}" defer></script>
+
 </body>
+
 </html>
