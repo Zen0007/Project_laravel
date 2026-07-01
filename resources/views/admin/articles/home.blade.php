@@ -100,7 +100,6 @@
     </div>
 
 </div>
-
 {{-- ==================== MODAL OVERLAY: CREATE NEW ARTICLE ==================== --}}
 <div id="createArticleModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-surface border border-border rounded-xl w-full max-w-2xl overflow-hidden font-mono text-xs">
@@ -109,7 +108,6 @@
             <button type="button" onclick="ArticleService.closeCreateModal()" class="text-textSecondary hover:text-red-400">[X]</button>
         </div>
 
-        {{-- FIXED: Hapus atribut onsubmit inline agar sepenuhnya dikontrol oleh script blog.js event listener --}}
         <form id="createArticleForm" class="p-6 space-y-4">
             <div>
                 <label class="block text-textSecondary mb-1">Title *</label>
@@ -127,6 +125,29 @@
             </div>
 
             <div>
+                <label class="block text-textSecondary text-xs mb-1">COVER IMAGES</label>
+                <div class="flex items-center gap-4 bg-surfaceLight/5 border border-border/30 rounded p-3">
+                    <div id="createImagePreviewContainer" class="w-16 h-16 border border-border/30 rounded flex items-center justify-center bg-black/40 overflow-hidden shrink-0">
+                        <span id="createImagePlaceholderText" class="text-[10px] text-textMuted font-mono text-center">[NO_IMG]</span>
+                        <img id="createImagePreview" class="w-full h-full object-cover hidden" alt="Preview">
+                    </div>
+
+                    <div class="flex flex-col gap-1 w-full">
+                        <input type="file" id="createImageInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event, 'create')">
+                        <div class="flex gap-2">
+                            <button type="button" onclick="document.getElementById('createImageInput').click()" class="w-fit text-xs bg-surfaceLight/10 border border-border/40 hover:border-neonGreen hover:text-neonGreen px-3 py-1.5 rounded font-mono transition">
+                                [select_file]
+                            </button>
+                            <button type="button" id="createRemoveImageBtn" onclick="clearSelectedImage('create')" class="w-fit text-xs bg-surfaceLight/10 border border-border/40 hover:border-red-500 hover:text-red-500 px-3 py-1.5 rounded font-mono transition hidden">
+                                [remove_file]
+                            </button>
+                        </div>
+                        <span id="createImageName" class="text-[10px] text-textMuted truncate max-w-[200px]">No file chosen</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
                 <label class="block text-textSecondary mb-1">Content (Markdown / Text Body) *</label>
                 <textarea id="formContent" required rows="6" class="w-full bg-bg border border-border rounded p-2 text-textPrimary focus:border-neonGreen focus:outline-none" placeholder="Write your content here..."></textarea>
             </div>
@@ -139,6 +160,7 @@
     </div>
 </div>
 
+{{-- ==================== MODAL OVERLAY: EDIT ARTICLE ==================== --}}
 <div id="editArticleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
     <div class="bg-surfaceDark border border-border/50 max-w-lg w-full rounded-lg p-6 font-mono text-sm">
         <div class="flex justify-between items-center border-b border-border/30 pb-3 mb-4">
@@ -156,23 +178,30 @@
                     <label class="block text-textSecondary text-xs mb-1">SLUG</label>
                     <input type="text" id="editSlug" required class="w-full bg-surfaceLight/10 border border-border/30 rounded p-2 text-textPrimary focus:outline-none focus:border-neonGreen">
                 </div>
+
                 <div>
                     <label class="block text-textSecondary text-xs mb-1">FEATURED IMAGE</label>
                     <div class="flex items-center gap-4 bg-surfaceLight/5 border border-border/30 rounded p-3">
-                        <div id="imagePreviewContainer" class="w-16 h-16 border border-border/30 rounded flex items-center justify-center bg-black/40 overflow-hidden shrink-0">
-                            <span id="imagePlaceholderText" class="text-[10px] text-textMuted font-mono text-center">[NO_IMG]</span>
+                        <div id="editImagePreviewContainer" class="w-16 h-16 border border-border/30 rounded flex items-center justify-center bg-black/40 overflow-hidden shrink-0">
+                            <span id="editImagePlaceholderText" class="text-[10px] text-textMuted font-mono text-center">[NO_IMG]</span>
                             <img id="editImagePreview" class="w-full h-full object-cover hidden" alt="Preview">
                         </div>
 
                         <div class="flex flex-col gap-1 w-full">
-                            <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event)">
-                            <button type="button" onclick="document.getElementById('editImageInput').click()" class="w-fit text-xs bg-surfaceLight/10 border border-border/40 hover:border-neonGreen hover:text-neonGreen px-3 py-1.5 rounded font-mono transition">
-                                [select_file]
-                            </button>
+                            <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event, 'edit')">
+                            <div class="flex gap-2">
+                                <button type="button" onclick="document.getElementById('editImageInput').click()" class="w-fit text-xs bg-surfaceLight/10 border border-border/40 hover:border-neonGreen hover:text-neonGreen px-3 py-1.5 rounded font-mono transition">
+                                    [select_file]
+                                </button>
+                                <button type="button" id="editRemoveImageBtn" onclick="clearSelectedImage('edit')" class="w-fit text-xs bg-surfaceLight/10 border border-border/40 hover:border-red-500 hover:text-red-500 px-3 py-1.5 rounded font-mono transition hidden">
+                                    [remove_file]
+                                </button>
+                            </div>
                             <span id="editImageName" class="text-[10px] text-textMuted truncate max-w-[200px]">No file chosen</span>
                         </div>
                     </div>
                 </div>
+
                 <div>
                     <label class="block text-textSecondary text-xs mb-1">TAGS (Separated by comma)</label>
                     <input type="text" id="editTags" class="w-full bg-surfaceLight/10 border border-border/30 rounded p-2 text-textPrimary focus:outline-none focus:border-neonGreen" placeholder="news, tech, cyber">

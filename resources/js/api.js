@@ -24,7 +24,7 @@ export class ArticleService {
         const response = await fetch(
             `${API_BASE_URL}/articles?${params.toString()}`,
         );
-
+        console.log(response);
         if (!response.ok) {
             throw new Error("Failed to fetch articles");
         }
@@ -143,33 +143,47 @@ export class ArticleService {
      */
     static async create(article) {
         try {
-            const payload = {
-                title: article.title,
-                slug: article.slug || ArticleService.slugify(article.title),
-                excerpt:
-                    article.excerpt ||
-                    article.content?.substring(0, 150) + "..." ||
-                    "",
-                content: article.content || {},
-                cover_image: article.cover_image || "",
-            };
+            const formData = new FormData();
+            // 2. Append text fields
+            formData.append("title", article.title);
+            formData.append(
+                "slug",
+                article.slug || ArticleService.slugify(article.title),
+            );
 
-            // Jika content adalah string, parse menjadi JSON
-            if (typeof payload.content === "string") {
+            const excerptValue =
+                article.excerpt ||
+                (typeof article.content === "string"
+                    ? article.content.substring(0, 150) + "..."
+                    : "");
+            formData.append("excerpt", excerptValue);
+
+            // Process content structure safely
+            let structuredContent = article.content || {};
+            if (typeof structuredContent === "string") {
                 try {
-                    payload.content = JSON.parse(payload.content);
+                    structuredContent = JSON.parse(structuredContent);
                 } catch {
-                    payload.content = { text: payload.content };
+                    structuredContent = { text: structuredContent };
                 }
             }
 
-            // FIXED: Replaced API_ENDPOINTS with template literal string
+            formData.append("content", JSON.stringify(structuredContent));
+
+            // 3. Append the binary file to 'cover_image'
+            if (article.cover_image) {
+                formData.append("cover_image", article.cover_image);
+            }
+
+            const customHeaders = { ...API_HEADERS };
+            delete customHeaders["Content-Type"];
+
             const response = await fetch(`${API_BASE_URL}/articles`, {
                 method: "POST",
-                headers: API_HEADERS,
-                body: JSON.stringify(payload),
+                headers: customHeaders,
+                body: formData, // Send FormData straight through
             });
-
+            console.log(response);
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || "Failed to create article");
@@ -188,22 +202,51 @@ export class ArticleService {
      */
     static async update(id, article) {
         try {
-            const payload = { ...article };
+            const formData = new FormData();
 
-            // Jika content adalah string, parse menjadi JSON
-            if (payload.content && typeof payload.content === "string") {
+            // 1. Append basic flat text fields
+            formData.append("title", article.title || "");
+            formData.append("slug", article.slug || "");
+
+            // 2. EXACT copy of your working content-processing logic from create()
+            let structuredContent = article.content || {};
+            if (typeof structuredContent === "string") {
                 try {
-                    payload.content = JSON.parse(payload.content);
+                    structuredContent = JSON.parse(structuredContent);
                 } catch {
-                    payload.content = { text: payload.content };
+                    structuredContent = { text: structuredContent };
                 }
             }
 
-            // FIXED: Replaced API_ENDPOINTS with template literal string
+            // Match tags into the structured layout if your backend expects it inside content
+            if (article.tags && typeof structuredContent === "object") {
+                structuredContent.tags = article.tags;
+            }
+
+            // Send it as a clean, single-stringified JSON payload field
+            formData.append("content", JSON.stringify(structuredContent));
+
+            // 3. Append the binary file if it exists
+            if (article.cover_image instanceof File) {
+                formData.append("cover_image", article.cover_image);
+            }
+
+            // 4. Strip out Content-Type cleanly (No custom cross-origin headers)
+            const customHeaders = {};
+            if (typeof API_HEADERS === "object") {
+                for (const [key, value] of Object.entries(API_HEADERS)) {
+                    if (key.toLowerCase() !== "content-type") {
+                        customHeaders[key] = value;
+                    }
+                }
+            }
+
+            console.log(formData);
+
             const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
-                method: "PUT",
-                headers: API_HEADERS,
-                body: JSON.stringify(payload),
+                method: "PUT", // Native PUT request back in action
+                headers: customHeaders,
+                body: formData,
             });
 
             if (!response.ok) {
@@ -211,8 +254,7 @@ export class ArticleService {
                 throw new Error(error.error || "Failed to update article");
             }
 
-            const data = await response.json();
-            return data;
+            return await response.json();
         } catch (error) {
             console.error(`Error updating article ${id}:`, error);
             throw error;
@@ -454,6 +496,10 @@ export class ArticleService {
         const contentRaw = document.getElementById("formContent")?.value;
         const tagsInput = document.getElementById("formTags")?.value;
 
+        // NEW: Get the selected file from the file input element
+        const imageFileInput = document.getElementById("formImageFile");
+        const coverImageFile = imageFileInput?.files[0];
+
         // Parse content as JSON
         let content;
         try {
@@ -482,8 +528,7 @@ export class ArticleService {
             slug: slug || undefined,
             content: content,
             excerpt: contentRaw?.substring(0, 150) + "..." || "",
-            cover_image:
-                "https://picsum.photos/seed/" + Math.random() + "/600/400",
+            cover_image: coverImageFile || "", // Updated here,
         };
 
         try {

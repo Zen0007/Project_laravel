@@ -1,3 +1,4 @@
+import { Wind } from "lucide";
 import { ArticleService } from "./api";
 
 // 1. Tambahkan fungsi kontrol UI (Modal & Toast) ke dalam scope global ArticleService
@@ -93,38 +94,27 @@ async function refreshDashboardTable() {
         tableBody.innerHTML = articles
             .map((article) => {
                 let tagsArray = [];
-                // Cek tags dari root properti article, ATAU coba parse jika disimpan di dalam JSON content
-                let sourceTags = article.tags;
 
-                if (!sourceTags && article.content) {
-                    // Pastikan content adalah string DAN terlihat seperti format JSON (diawali '{' atau '[')
-                    // Jika diawali '<', berarti itu HTML, jadi lewati saja (jangan di-parse)
-                    const isString = typeof article.content === "string";
-                    const isJsonLikely =
-                        isString &&
-                        (article.content.trim().startsWith("{") ||
-                            article.content.trim().startsWith("["));
-
-                    if (isJsonLikely) {
-                        try {
-                            const parsedContent = JSON.parse(article.content);
-                            sourceTags = parsedContent.tags;
-                        } catch (e) {
-                            // Biarkan kosong jika memang gagal parse JSON yang valid
-                        }
-                    } else if (!isString) {
-                        // Jika content ternyata sudah berupa objek literal dari database (bukan string)
-                        sourceTags = article.content.tags;
-                    }
+                // PRIORITY 1: content.tags (single source of truth)
+                if (
+                    article.content &&
+                    typeof article.content === "object" &&
+                    Array.isArray(article.content.tags)
+                ) {
+                    tagsArray = article.content.tags;
                 }
 
-                if (Array.isArray(sourceTags)) {
-                    tagsArray = sourceTags;
-                } else if (
-                    typeof sourceTags === "string" &&
-                    sourceTags.trim() !== ""
+                // PRIORITY 2: fallback article.tags (legacy DB support)
+                else if (Array.isArray(article.tags)) {
+                    tagsArray = article.tags;
+                }
+
+                // PRIORITY 3: string fallback (legacy only)
+                else if (
+                    typeof article.tags === "string" &&
+                    article.tags.trim() !== ""
                 ) {
-                    tagsArray = sourceTags.split(",").map((t) => t.trim());
+                    tagsArray = article.tags.split(",").map((t) => t.trim());
                 }
 
                 const tagBadges =
@@ -193,66 +183,94 @@ async function handleEditClick(id) {
 // Pastikan tetap ter-expose ke global scope
 window.handleEditClick = handleEditClick;
 
-// 1. Fungsi untuk membaca file baru yang dipilih oleh user (Preview Lokal)
-function previewSelectedImage(event) {
-    const file = event.target.files[0];
-    const preview = document.getElementById("editImagePreview");
-    const placeholder = document.getElementById("imagePlaceholderText");
-    const nameText = document.getElementById("editImageName");
-
-    if (file) {
-        nameText.textContent = file.name;
-        preview.src = URL.createObjectURL(file);
-        preview.classList.remove("hidden");
-        placeholder.classList.add("hidden");
-    }
-}
-
 // 2. Modifikasi fungsi openEditModal yang sudah ada untuk memuat gambar dari database
 function openEditModal(article) {
     const modal = document.getElementById("editArticleModal");
 
-    // Reset input file dan teks nama file dari sesi sebelumnya
+    // Reset file input from previous sessions
     document.getElementById("editImageInput").value = "";
     document.getElementById("editImageName").textContent = "No file chosen";
 
+    // Set basic fields
     document.getElementById("editTitle").value = article.title || "";
     document.getElementById("editSlug").value = article.slug || "";
 
-    // LOGIK PREVIEW GAMBAR DARI DATABASE
+    // Handle Image Preview
     const preview = document.getElementById("editImagePreview");
-    const placeholder = document.getElementById("imagePlaceholderText");
 
-    // Asumsi properti dari database bernama article.image_url atau article.image
-    const currentImageUrl = article.image_url || article.image;
+    // FIX HERE: Changed from 'imagePlaceholderText' to 'editImagePlaceholderText'
+    const placeholder = document.getElementById("editImagePlaceholderText");
+
+    // FIX HERE: Also get the remove button to toggle its visibility based on existing images
+    const removeBtn = document.getElementById("editRemoveImageBtn");
+
+    const currentImageUrl =
+        article.image_url || article.image || article.cover_image;
 
     if (currentImageUrl) {
         preview.src = currentImageUrl;
         preview.classList.remove("hidden");
         placeholder.classList.add("hidden");
+        if (removeBtn) removeBtn.classList.remove("hidden"); // Show remove button if image exists
+        document.getElementById("editImageName").textContent =
+            "Current cover image";
     } else {
         preview.src = "";
         preview.classList.add("hidden");
         placeholder.classList.remove("hidden");
+        if (removeBtn) removeBtn.classList.add("hidden"); // Hide remove button if no image
     }
 
-    // Penanganan tags
+    // --- NEW FIXED CORE LOGIC FOR TAGS & CONTENT ---
+    let innerText = "";
+    let tagsArray = [];
+
+    // 1. global tags (dari backend column)
     if (Array.isArray(article.tags)) {
-        document.getElementById("editTags").value = article.tags.join(", ");
-    } else {
-        document.getElementById("editTags").value = article.tags || "";
+        tagsArray = article.tags;
     }
 
-    // Penanganan content
-    if (article.content && typeof article.content === "object") {
-        document.getElementById("editContent").value = JSON.stringify(
-            article.content,
-            null,
-            2,
-        );
-    } else {
-        document.getElementById("editContent").value = article.content || "";
+    // 2. parse content (ONLY blocks + tags)
+    let parsedContent = {
+        blocks: [],
+        tags: [],
+    };
+
+    if (article.content) {
+        if (typeof article.content === "string") {
+            try {
+                parsedContent = JSON.parse(article.content);
+            } catch (e) {
+                parsedContent = { blocks: [], tags: [] };
+            }
+        } else if (typeof article.content === "object") {
+            parsedContent = article.content;
+        }
     }
+
+    // 3. NO MORE `text` SUPPORT (IMPORTANT FIX)
+    if (Array.isArray(parsedContent.blocks)) {
+        innerText = JSON.stringify(parsedContent.blocks, null, 2);
+    } else if (parsedContent.text) {
+        innerText = parsedContent.text;
+    }
+
+    // 4. tags priority: content.tags > article.tags
+    if (Array.isArray(parsedContent.tags)) {
+        tagsArray = parsedContent.tags;
+    }
+
+    console.log("tag", tagsArray, parsedContent);
+
+    // Fill the TAGS input with clean, comma-separated values (e.g., "news, tech, cyber")
+    document.getElementById("editTags").value =
+        tagsArray.length > 0 ? tagsArray.join(", ") : "";
+
+    console.log(innerText, ";;");
+    // Fill the CONTENT textarea with only the clean inner text block
+    document.getElementById("editContent").value =
+        JSON.stringify(parsedContent);
+    // -----------------------------------------------
 
     modal.classList.remove("hidden");
 }
@@ -268,39 +286,36 @@ function closeEditModal() {
 
 // Handler saat tombol submit [execute_update] ditekan
 async function handleEditFormSubmit(event) {
-    event.preventDefault(); // Mencegah reload halaman
-
+    event.preventDefault();
     if (!currentEditingId) return;
 
-    // Ambil data dari form
     const title = document.getElementById("editTitle").value;
     const slug = document.getElementById("editSlug").value;
     const tagsInput = document.getElementById("editTags").value;
-    const content = document.getElementById("editContent").value;
+    const contentRaw = document.getElementById("editContent").value; // Raw string from textarea
 
-    // Proses string tag menjadi array
+    const imageFileInput = document.getElementById("editImageInput");
+    const coverImageFile = imageFileInput?.files?.[0] || null;
+
     const tags = tagsInput
         .split(",")
         .map((t) => t.trim())
         .filter((t) => t !== "");
 
-    // Susun payload sesuai struktur yang diharapkan oleh ArticleService.update
+    // Pass flat payload down, let the service structure it exactly like create()
     const updatedPayload = {
         title,
         slug,
         tags,
-        content, // Di service kamu sudah ada logic auto-parse JSON jika ini string, jadi aman dilempar langsung
+        content: contentRaw,
+        cover_image: coverImageFile,
     };
 
+    console.log(updatedPayload);
     try {
-        // Eksekusi fungsi update yang kamu buat tadi
         await ArticleService.update(currentEditingId, updatedPayload);
-
-        // Tutup modal dan refresh tabel agar data terbaru muncul
         closeEditModal();
         await refreshDashboardTable();
-
-        // Opsional: Beri notifikasi sukses bergaya log terminal
         console.log(
             `[SYSTEM] Article #${currentEditingId} successfully updated.`,
         );
@@ -309,6 +324,48 @@ async function handleEditFormSubmit(event) {
         alert(`Error: ${error.message || "Failed to update article"}`);
     }
 }
+
+function previewSelectedImage(event, prefix) {
+    const input = event.target;
+    const preview = document.getElementById(`${prefix}ImagePreview`);
+    const placeholder = document.getElementById(
+        `${prefix}ImagePlaceholderText`,
+    );
+    const fileNameDisplay = document.getElementById(`${prefix}ImageName`);
+    const removeBtn = document.getElementById(`${prefix}RemoveImageBtn`);
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+
+        preview.src = URL.createObjectURL(file);
+
+        preview.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+        if (removeBtn) removeBtn.classList.remove("hidden");
+
+        fileNameDisplay.textContent = file.name;
+    }
+}
+
+function clearSelectedImage(prefix) {
+    const input = document.getElementById(`${prefix}ImageInput`);
+    const preview = document.getElementById(`${prefix}ImagePreview`);
+    const placeholder = document.getElementById(
+        `${prefix}ImagePlaceholderText`,
+    );
+    const fileNameDisplay = document.getElementById(`${prefix}ImageName`);
+    const removeBtn = document.getElementById(`${prefix}RemoveImageBtn`);
+
+    input.value = "";
+    preview.src = "";
+    preview.classList.add("hidden");
+    placeholder.classList.remove("hidden");
+    if (removeBtn) removeBtn.classList.add("hidden");
+
+    fileNameDisplay.textContent = "No file chosen";
+}
+
+window.clearSelectedImage = clearSelectedImage;
 
 window.closeEditModal = closeEditModal;
 window.handleEditFormSubmit = handleEditFormSubmit;
@@ -400,6 +457,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const tagsInput = document.getElementById("formTags").value;
             const contentRaw = document.getElementById("formContent").value;
 
+            // NEW: Capture the uploaded image file instance safely
+            const imageFileInput = document.getElementById("formImageFile");
+            const coverImageFile = imageFileInput?.files?.[0] || "";
+
             if (!slug) {
                 slug = title
                     .toLowerCase()
@@ -431,9 +492,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     slug: slug,
                     content: structuredContent, // content sekarang membawa data teks + tags
                     excerpt: contentRaw.substring(0, 150) + "...", // otomatis membuat cuplikan teks
+                    cover_image: coverImageFile, // NEW: Pass down the binary file block here
                 });
 
                 showAdminToast("✓ COMPILE_SUCCESS");
+
+                // Reset form fields after success so old data doesn't stick around next time it opens
+                createForm.reset();
 
                 // Tutup modal form admin
                 window.ArticleService?.closeCreateModal?.();
